@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Option</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+        }
+        .sidebar {
+            width: 20%;
+            height: 100vh;
+            background-color: rgba(230, 18, 18, 0.8);
+            color: white;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(211, 1, 1, 0.2);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .currency-selector {
+            margin-bottom: 20px;
+        }
+        .currency-selector select {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        h3 {
+            background-color: #f0f0f0;
+            color: blue;
+            height: 30px;
+            padding-top: 10px;
+          padding-left: 10px;
+            border-radius: 5px;
+            font-size: larger;
+            font-family: Georgia, 'Times New Roman', Times, serif
+        }
+        .waiting {
+            font-size: 24px;
+            color: black;
+            text-align: center;
+            margin-top: 20px;
+            display: none; /* Initially hidden */
+        }
+        /* Modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+        }
+        .tradingview-widget-container {
+            width: 80%;
+            height: 100vh;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 0 10px 10px 0;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto; /* 15% from the top and centered */
+            padding: 20px;
+            border: 1px solid #2705e7;
+            width: 30%; /* Could be more or less, depending on screen size */
+            text-align: center;
+            color: blue;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        /* Media Query for Mobile Devices */
+        @media only screen and (max-width: 600px) {
+            .sidebar {
+                display: none; /* Hide sidebar on small screens */
+            }
+            .tradingview-widget-container {
+                display: none; /* Hide chart on small screens */
+            }
+            .message-for-small-screen {
+                display: block; /* Show message on small screens */
+                text-align: center;
+                padding: 20px;
+                font-size: 18px;
+                color: red;
+            }
+        }
+        /* Disable right-click */
+        body {
+            touch-action: none; /* Disable touch actions */
+            -webkit-touch-callout: none; /* Disable callout */
+            -webkit-user-select: none; /* Disable selection */
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar for Currency Selection -->
+    <div class="sidebar">
+        <div class="currency-selector">
+            <h3>Currency Asset</h3>
+            <select id="currency-pair-select">
+                <option value="FX:EURUSD">EUR/USD</option>
+                <option value="FX:GBPUSD">GBP/USD</option>
+                <option value="FX:USDJPY">USD/JPY</option>
+                <option value="FX:AUDUSD">AUD/USD</option>
+                <option value="FX:USDCAD">USD/CAD</option>
+                <option value="FX:USDCHF">USD/CHF</option>
+                <option value="FX:NZDUSD">NZD/USD</option>
+                <option value="FX:EURGBP">EUR/GBP</option>
+                <option value="FX:GBPJPY">GBP/JPY</option>
+                <option value="FX:EURJPY">EUR/JPY</option>
+                <option value="FX:AUDJPY">AUD/JPY</option>
+                <option value="FX:CADJPY">CAD/JPY</option>
+                <option value="FX:CHFJPY">CHF/JPY</option>
+                <option value="FX:EURAUD">EUR/AUD</option>
+                <option value="FX:GBPCAD">GBP/CAD</option>
+                <!-- Add more currency pairs as needed -->
+            </select>
+        </div>
+        <div class="waiting">Detecting signals...</div>
+    </div>
+
+    <!-- TradingView Widget BEGIN -->
+    <div class="tradingview-widget-container">
+        <div id="tradingview_abcde" style="height:100%; width:100%;"></div>
+        <div class="tradingview-widget-copyright"></div>
+    </div>
+
+    <!-- Message for Small Screens -->
+    <div class="message-for-small-screen">
+      
+    </div>
+
+    <!-- The Modal -->
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <p id="modal-text"></p>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script type="text/javascript">
+        // Function to create TradingView widget
+        function createTradingViewWidget(symbol) {
+            new TradingView.widget({
+                "container_id": "tradingview_abcde",
+                "autosize": true,
+                "symbol": symbol,
+                "timezone": "Asia/Karachi",
+                "theme": "light",
+                "style": "1",
+                "locale": "en",
+                "withdateranges": true,
+                "hide_side_toolbar": false,
+                "allow_symbol_change": true,
+                "calendar": false,
+                "studies": [
+                    "STD;Linear_Regression",
+                ],
+                "show_popup_button": true,
+                "popup_width": "1000",
+                "popup_height": "650",
+                "hide_volume": true,
+                "support_host": "https://www.tradingview.com"
+            });
+        }
+
+        // Initial widget creation
+        const savedSymbol = localStorage.getItem('selectedSymbol') || 'FX:EURUSD';
+        createTradingViewWidget(savedSymbol);
+        document.getElementById('currency-pair-select').value = savedSymbol;
+
+        // Update widget and detect signals on currency pair selection change
+        document.getElementById('currency-pair-select').addEventListener('change', async function() {
+            const symbol = this.value;
+            document.querySelector('.waiting').style.display = 'block'; // Display waiting animation
+            document.getElementById('tradingview_abcde').innerHTML = ''; // Clear the container
+            createTradingViewWidget(symbol); // Create a new widget
+            localStorage.setItem('selectedSymbol', symbol); // Save the selected symbol
+            await detectSignals(symbol); // Detect signals asynchronously
+            document.querySelector('.waiting').style.display = 'none'; // Hide waiting animation after signals are detected
+        });
+
+        // Function to detect signals
+        async function detectSignals(symbol) {
+            return new Promise(resolve => {
+                // Simulate signal detection after 2 seconds (replace with actual logic)
+                setTimeout(() => {
+                    // Fetch support and resistance levels from the chart
+                    const widget = window.TradingView.getWidgetById("tradingview_abcde");
+                    const chart = widget.chart();
+                    const series = chart.series();
+
+                    // Example: Get support and resistance levels from visible range
+                    const levels = series.supportResistanceLevels(chart.timeScale().visibleBars());
+
+                    // Simulate market trend (replace with actual trend detection)
+                    const isUptrend = true; // Replace with actual trend detection logic
+                    const isHammer = true; // Replace with actual candle pattern detection
+                    const hasHighVolume = true; // Replace with actual volume condition
+
+                    // Determine if current price is near support or resistance level
+                   
+                    // Determine if current price is near support or resistance level
+                    const currentPrice = chart.mainSeries().lastValue().close();
+                    const nearSupport = levels.support.some(level => currentPrice >= level - 5 && currentPrice <= level + 5); // Example: within 5 pips
+                    const nearResistance = levels.resistance.some(level => currentPrice >= level - 5 && currentPrice <= level + 5); // Example: within 5 pips
+
+                    // Example signal detection based on conditions
+                    if (isUptrend && isHammer && hasHighVolume && nearResistance) {
+                        showModal(`Sell signal detected on ${symbol} (Hammer in uptrend with high volume near resistance).`);
+                        playSound();
+                    } else if (!isUptrend && isHammer && hasHighVolume && nearSupport) {
+                        showModal(`Buy signal detected on ${symbol} (Hammer in downtrend with high volume near support).`);
+                        playSound();
+                    } else {
+                        showModal(`No valid signal detected on ${symbol}.`);
+                    }
+
+                    resolve();
+                }, 2000); // Simulate delay for demonstration
+            });
+        }
+
+        // Function to show modal with message
+        function showModal(message) {
+            const modal = document.getElementById('myModal');
+            const span = document.getElementsByClassName('close')[0];
+            document.getElementById('modal-text').textContent = message;
+            modal.style.display = 'block';
+
+            // Close the modal when the user clicks on <span> (x)
+            span.onclick = function() {
+                modal.style.display = 'none';
+            }
+
+            // Close the modal when the user clicks anywhere outside of the modal
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    modal.style.display = 'none';
+                }
+            }
+        }
+
+        // Function to play sound
+        function playSound() {
+            const audio = new Audio('https://www.soundjay.com/button/sounds/button-10.mp3');
+            audio.play();
+        }
+
+        // Disable right-click on the entire document
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+
+        // Check screen size and show message for small screens
+        if (window.matchMedia("(max-width: 600px)").matches) {
+            const messageForSmallScreen = document.querySelector('.message-for-small-screen');
+            messageForSmallScreen.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
